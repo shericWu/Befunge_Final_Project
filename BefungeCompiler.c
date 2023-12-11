@@ -7,13 +7,13 @@
 #define CommandWidth 5000
 #define CommandLength 500
 #define CommandNumLimit 50000 // to avoid infinite loop
-#define FILENAME "BefungeCommand.txt" // the sourse of the command
-
-enum dir{right, down, left, up};
+#define FILENAME "HelloWorld.bf" // the sourse of the command
 
 char CommandAry[CommandWidth][CommandLength];
-int dx[4] = {1, 0, -1, 0};
-int dy[4] = {0, 1, 0, -1};
+
+enum dir{right, down, left, up};
+const int dx[4] = {1, 0, -1, 0};
+const int dy[4] = {0, 1, 0, -1};
 
 typedef struct list{
     int value;
@@ -26,15 +26,16 @@ typedef struct stack{
 
 List *genNode(int value, List *next){
     List *newNode = (List *)malloc(sizeof(List));
+    assert(newNode != NULL);
     newNode->value = value;
     newNode->next = next;
     return newNode;
 }
 
-void initialStack(Stack **stack){
-    *stack = (Stack *)malloc(sizeof(Stack));
-    (*stack)->top = NULL;
-    return;
+Stack *initialStack(){
+    Stack *stack = (Stack *)malloc(sizeof(Stack));
+    stack->top = NULL;
+    return stack;
 }
 
 bool isempty(Stack *stack){
@@ -44,9 +45,12 @@ bool isempty(Stack *stack){
 int pop(Stack *stack){
     if(isempty(stack)){
         printf("failed to pop from the stack\n");
+        return -1;
     }
     int out = stack->top->value;
+    List *trash = stack->top;
     stack->top = stack->top->next;
+    free(trash);
     return out;
 }
 
@@ -56,8 +60,9 @@ void push(Stack *stack, int value){
 }
 
 void LoadCommand(FILE *fp){
-    for(int i = 0; i < CommandLength; i++){
-        fgets(CommandAry[i], CommandWidth - 5, fp);
+    int i = 0;
+    while(i < CommandLength && fgets(CommandAry[i], CommandWidth - 5, fp) != NULL){
+        i++;
     }
     return;
 }
@@ -67,15 +72,16 @@ bool isvalid(int y, int x){
 }
 
 int main(void){
-    Stack *stack = NULL;
-    initialStack(&stack);
+    Stack *stack = initialStack();
     FILE *fp = fopen(FILENAME, "r");
     if(fp == NULL){
         printf("failed to open the file\n");
-        return 0;
+        exit(-1);
     }
     LoadCommand(fp);
     fclose(fp);
+
+    srand(time(NULL));
 
     #ifdef DEBUG
     for(int i = 0; i < CommandLength; i++){
@@ -97,7 +103,7 @@ int main(void){
 
         if(!isvalid(y, x)){
             printf("The program shut down for running at an invalid positon\n");
-            return 0;
+            exit(-1);
         }
         if(stringMode){
             if(CommandAry[y][x] == '\"'){
@@ -147,8 +153,7 @@ int main(void){
                 push(stack, (pop(stack) < pop(stack))? 1 : 0);
                 break;
             case '?':
-                srand(time(NULL));
-                direction = (rand()) % 4;
+                direction = rand() % 4;
                 break;
             case '_':
                 direction = (pop(stack) == 0)? right : left;
@@ -177,7 +182,12 @@ int main(void){
                 printf("%d", pop(stack));
                 break;
             case ',':
-                printf("%c", pop(stack));
+                a = pop(stack);
+                if (a < 0 || a > CHAR_MAX) {
+                    printf("top of stack is not a char\n");
+                    break;
+                }
+                printf("%c", a);
                 break;
             case '#':
                 x += dx[direction];
@@ -203,15 +213,16 @@ int main(void){
                 CommandAry[targetY][targetX] = targetV;
                 break;
             case '&':
-                assert(scanf("%d", &input));
+                assert(scanf("%d", &input) == 1);
                 push(stack, input);
                 break;
             case '~':
-                assert(scanf("%c", &input));
+                assert(scanf("%c", &input) == 1);
                 push(stack, input);
                 break;
             case '@':
-                return 0;
+                printf("\nThe program ended successfully.\n");
+                exit(0);
             default:
                 if(isdigit(CommandAry[y][x])){
                     push(stack, CommandAry[y][x] - '0');
