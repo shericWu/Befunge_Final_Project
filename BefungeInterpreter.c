@@ -5,12 +5,12 @@
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
-#define CommandWidth 5000
 #define CommandLength 500
-#define CommandNumLimit 50000 // to avoid infinite loop
+#define CommandWidth 5000
+#define CommandNumLimit 500000 // to avoid infinite loop
 #define FILENAME "BefungeCommand.bf" // the sourse of the command
 
-char CommandAry[CommandWidth][CommandLength];
+char CommandAry[CommandLength][CommandWidth];
 
 enum dir{right, down, left, up};
 const int dx[4] = {1, 0, -1, 0};
@@ -47,7 +47,7 @@ bool isempty(Stack *stack){
 int pop(Stack *stack){
     if(isempty(stack)){
         printf("failed to pop from the stack\n");
-        return -1;
+        exit(-1);
     }
     int out = stack->top->value;
     List *pre = stack->top;
@@ -73,7 +73,32 @@ bool isvalid(int y, int x){
     return y >= 0 && y < CommandLength && x >= 0 && x < CommandWidth;
 }
 
+void adjustPosition(int *y, int *x){
+    if(*y < 0){
+        *y += CommandLength;
+        while(CommandAry[*y][*x] == 0){
+            *y -= 1;
+        }
+    }
+    else if(*y >= CommandLength){
+        *y -= CommandLength;
+    }
+    if(*x < 0){
+        *x += CommandWidth;
+        while(CommandAry[*y][*x] == 0){
+            *x -= 1;
+        }
+    }
+    else if(*x >= CommandWidth){
+        *x -= CommandWidth;
+    }
+    return;
+}
+
 void printStack(Stack *stack){
+    if(isempty(stack)){
+        return;
+    }
     printf("stack :");
     for(List *looking = stack->top; looking != NULL; looking = looking->next){
         printf(" %d", looking->value);
@@ -87,7 +112,7 @@ int main(void){
     FILE *fp = fopen(FILENAME, "r");
     if(fp == NULL){
         printf("failed to open the file\n");
-        return -1;
+        exit(-1);
     }
     LoadCommand(fp);
     fclose(fp);
@@ -104,17 +129,25 @@ int main(void){
 
     int x = 0, y = 0;
     int direction = right;
-    bool stringMode = false;
+    bool stringMode = false, jumpMode = false;
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
 
+        if(!isvalid(y, x)){
+            adjustPosition(&y, &x);
+        }
+
         #ifdef DEBUG
+        printStack(stack);
         printf("direction before the command %d\n", direction);
         printf("position (%d, %d), command %c\n", y, x, CommandAry[y][x]);
         #endif
 
-        if(!isvalid(y, x)){
-            printf("The program shut down for running at an invalid positon\n");
-            return -1;
+        if(jumpMode){
+            if(isspace(CommandAry[y][x]) || CommandAry[y][x] == 0){
+                continue;
+            }
+            jumpMode = false;
+            continue;
         }
         if(stringMode){
             if(CommandAry[y][x] == '\"'){
@@ -124,7 +157,9 @@ int main(void){
             push(stack, CommandAry[y][x]);
             continue;
         }
-        int a = -1, b = -1, targetX = -1, targetY = -1, targetV = -1, input = -1;
+        
+        int a = -1, b = -1, targetX = -1, targetY = -1, targetV = -1, inputInt = -1;
+        char inputChar = 0;
         switch(CommandAry[y][x]){
             case '>':
                 direction = right;
@@ -203,8 +238,7 @@ int main(void){
                 printf("%c", a);
                 break;
             case '#':
-                x += dx[direction];
-                y += dy[direction];
+                jumpMode = true;
                 break;
             case 'g':
                 targetY = pop(stack);
@@ -227,21 +261,9 @@ int main(void){
                 CommandAry[targetY][targetX] = targetV;
                 break;
             case '&':
-                a = scanf("%d", &input);
+                a = scanf("%d", &inputInt);
                 if(a == 1){
-                    push(stack, input);
-                    break;
-                }
-                if(a == EOF){
-                    push(stack, -1);
-                    break;
-                }
-                printf("failed to get user's input\n"); // need check!!
-                break;
-            case '~':
-                a = scanf("%c", &input);
-                if(a == 1){
-                    push(stack, input);
+                    push(stack, inputInt);
                     break;
                 }
                 if(a == EOF){
@@ -249,7 +271,19 @@ int main(void){
                     break;
                 }
                 printf("failed to get user's input\n");
-                break;
+                exit(-1);
+            case '~':
+                a = scanf("%c", &inputChar);
+                if(a == 1){
+                    push(stack, inputChar);
+                    break;
+                }
+                if(a == EOF){
+                    push(stack, -1);
+                    break;
+                }
+                printf("failed to get user's input\n");
+                exit(-1);
             case '@':
                 printf("\nThe program ended successfully\n");
                 return 0;
@@ -257,14 +291,13 @@ int main(void){
                 if(isdigit(CommandAry[y][x])){
                     push(stack, CommandAry[y][x] - '0');
                 }
-                else if(!isspace(CommandAry[y][x])){
+                else if(!isspace(CommandAry[y][x]) && CommandAry[y][x] != 0){
                     printf("Invalid Command '%c' at (%d, %d)\n", CommandAry[y][x], y, x);
                 }
                 break;
         }
 
         #ifdef DEBUG
-        printStack(stack);
         printf("direction after the command %d\n", direction);
         #endif
 
