@@ -1,0 +1,11 @@
+push 0
+push "!dlroW olleH"
+(loop)
+duplicate
+printc
+if0{
+    jump end
+}
+jump loop
+(end)
+return

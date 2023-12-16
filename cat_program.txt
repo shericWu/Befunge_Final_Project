@@ -1,0 +1,12 @@
+inputc
+duplicate
+push 1
++
+not
+if0{
+    jump end
+}
+return
+(end)
+printc
+return
