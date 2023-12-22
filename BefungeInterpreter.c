@@ -9,6 +9,7 @@
 #define CommandWidth 5000
 #define CommandNumLimit 500000 // to avoid infinite loop
 #define FILENAME "BefungeCommand.bf" // the sourse of the command
+#define OUTFILE "BefungeOut" // the name of the output
 
 char CommandAry[CommandLength][CommandWidth];
 
@@ -107,6 +108,16 @@ void printStack(Stack *stack){
     return;
 }
 
+void printCommand(){
+    FILE *fp = fopen(OUTFILE, "w");
+    assert(fp != NULL);
+    for(int i = 0; i < CommandLength; i++){
+        fputs(CommandAry[i], fp);
+    }
+    fclose(fp);
+    return;
+}
+
 int main(void){
     Stack *stack = initialStack();
     FILE *fp = fopen(FILENAME, "r");
@@ -119,13 +130,7 @@ int main(void){
 
     srand(time(NULL));
 
-    #ifdef DEBUG // print the whole command array
-    for(int i = 0; i < CommandLength; i++){
-        for(int j = 0; j < CommandWidth; j++){
-            printf("%c", CommandAry[i][j]);
-        }
-    }
-    #endif
+    printCommand();
 
     int x = 0, y = 0;
     int direction = right;
@@ -259,6 +264,7 @@ int main(void){
                     break;
                 }
                 CommandAry[targetY][targetX] = targetV;
+                printCommand();
                 break;
             case '&':
                 a = scanf("%d", &inputInt);
@@ -285,6 +291,7 @@ int main(void){
                 printf("failed to get user's input\n");
                 exit(-1);
             case '@':
+                fclose(fp);
                 printf("\nThe program ended successfully\n");
                 return 0;
             default:
