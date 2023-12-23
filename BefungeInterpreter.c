@@ -7,14 +7,13 @@
 #include <limits.h>
 #include <windows.h>
 #include <string.h>
-#define CommandLength 500
-#define CommandWidth 5000
+#define CommandLength 300
+#define CommandWidth 600
 #define CommandNumLimit 500000 // to avoid infinite loop
-#define FILENAME "foo.bf" // the sourse of the command
+#define FILENAME "BefungeCommand.bf" // the sourse of the command
 #define OUTFILE "BefungeOut" // the name of the output
-#define CONSOLE_MODE
 
-char CommandAry[CommandLength][CommandWidth];
+unsigned char CommandAry[CommandLength][CommandWidth];
 
 enum dir{right, down, left, up};
 const int dx[4] = {1, 0, -1, 0};
@@ -112,31 +111,58 @@ void printStack(Stack *stack){
 }
 
 void printCommand(){
-#ifndef CONSOLE_MODE
+
+    #if defined FILE_MODE
     FILE *fp = fopen(OUTFILE, "w");
     assert(fp != NULL);
     for(int i = 0; i < CommandLength; i++){
-        fputs(CommandAry[i], fp);
+        for(int j = 0; j < CommandWidth; j++){
+            if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
+                fputc(CommandAry[i][j], fp);
+            }
+            else{
+                fputc(' ', fp);
+            }
+        }
+        fputc('\n', fp);
     }
     fclose(fp);
-#endif
-#ifdef CONSOLE_MODE
+
+    #elif defined CONSOLE_MODE
     system("cls");
-    for (int i = 0; i < 50; i++) {
-        for (int j = 0; j < 100; j++) {
-            if (CommandAry[i][j] < 32)
-                putchar(' ');
-            else
+    for(int i = 0; i < CommandLength; i++){
+        for(int j = 0; j < CommandWidth; j++){
+            if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
                 putchar(CommandAry[i][j]);
+            }
+            else{
+                putchar(' ');
+            }
         }
         putchar('\n');
     }
-#endif
+
+    #else // screen mode
+    FILE *fp = fopen(OUTFILE, "w");
+    assert(fp != NULL);
+    for(int i = 0; i < 256; i++){
+        for(int j = 0; j < 512; j++){
+            if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
+                fputc(CommandAry[i][j], fp);
+            }
+            else{
+                fputc(' ', fp);
+            }
+        }
+        fputc('\n', fp);
+    }
+    fclose(fp);
+    #endif
+    
     return;
 }
 
 int main(void){
-    memset(CommandAry, ' ', CommandLength * CommandWidth * sizeof(char));
     Stack *stack = initialStack();
     FILE *fp = fopen(FILENAME, "r");
     if(fp == NULL){
@@ -182,7 +208,7 @@ int main(void){
         }
         
         int a = -1, b = -1, targetX = -1, targetY = -1, targetV = -1, inputInt = -1;
-        char inputChar = 0;
+        unsigned char inputChar = 0;
         switch(CommandAry[y][x]){
             case '>':
                 direction = right;
