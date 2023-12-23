@@ -9,11 +9,11 @@
 #include <string.h>
 #define CommandLength 300
 #define CommandWidth 600
-#define CommandNumLimit 500000 // to avoid infinite loop
+#define CommandNumLimit 50000 // to avoid infinite loop
 #define FILENAME "BefungeCommand.bf" // the sourse of the command
 #define OUTFILE "BefungeOut" // the name of the output
 
-unsigned char CommandAry[CommandLength][CommandWidth];
+unsigned short int CommandAry[CommandLength][CommandWidth];
 
 enum dir{right, down, left, up};
 const int dx[4] = {1, 0, -1, 0};
@@ -65,10 +65,24 @@ void push(Stack *stack, int value){
 }
 
 void LoadCommand(FILE *fp){
-    int i = 0;
-    while(i < CommandLength && fgets(CommandAry[i], CommandWidth - 5, fp) != NULL){
-        i++;
+    int i = 0, j = 0;
+    while(i < CommandLength && j < CommandWidth){
+        int c = fgetc(fp);
+        if(c == EOF){
+            return;
+        }
+        if(c == '\n'){
+            CommandAry[i][j] = c;
+            i++;
+            j = 0;
+        }
+        else{
+            CommandAry[i][j] = c;
+            j++;
+        }
     }
+    printf("the command size is too large to store\n");
+    exit(-1);
     return;
 }
 
@@ -188,7 +202,12 @@ int main(void){
         #ifdef DEBUG
         printStack(stack);
         printf("direction before the command %d\n", direction);
-        printf("position (%d, %d), command %c\n", y, x, CommandAry[y][x]);
+        if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
+            printf("position (%d, %d), command %c\n", x, y, CommandAry[y][x]);
+        }
+        else{
+            printf("position (%d, %d)\n", x, y)
+        }
         #endif
 
         if(jumpMode){
@@ -208,7 +227,7 @@ int main(void){
         }
         
         int a = -1, b = -1, targetX = -1, targetY = -1, targetV = -1, inputInt = -1;
-        unsigned char inputChar = 0;
+        unsigned short int inputChar = 0;
         switch(CommandAry[y][x]){
             case '>':
                 direction = right;
