@@ -5,11 +5,14 @@
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
+#include <windows.h>
+#include <string.h>
 #define CommandLength 500
 #define CommandWidth 5000
 #define CommandNumLimit 500000 // to avoid infinite loop
-#define FILENAME "BefungeCommand.bf" // the sourse of the command
+#define FILENAME "foo.bf" // the sourse of the command
 #define OUTFILE "BefungeOut" // the name of the output
+#define CONSOLE_MODE
 
 char CommandAry[CommandLength][CommandWidth];
 
@@ -109,16 +112,31 @@ void printStack(Stack *stack){
 }
 
 void printCommand(){
+#ifndef CONSOLE_MODE
     FILE *fp = fopen(OUTFILE, "w");
     assert(fp != NULL);
     for(int i = 0; i < CommandLength; i++){
         fputs(CommandAry[i], fp);
     }
     fclose(fp);
+#endif
+#ifdef CONSOLE_MODE
+    system("cls");
+    for (int i = 0; i < 50; i++) {
+        for (int j = 0; j < 100; j++) {
+            if (CommandAry[i][j] < 32)
+                putchar(' ');
+            else
+                putchar(CommandAry[i][j]);
+        }
+        putchar('\n');
+    }
+#endif
     return;
 }
 
 int main(void){
+    memset(CommandAry, ' ', CommandLength * CommandWidth * sizeof(char));
     Stack *stack = initialStack();
     FILE *fp = fopen(FILENAME, "r");
     if(fp == NULL){
