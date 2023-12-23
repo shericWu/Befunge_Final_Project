@@ -1,0 +1,38 @@
+>  055*2*55*2*p 055*2*1+55*2*p    01- v
+  >   v                               <
+      ~
+            // i (50, 50) is used to save the number of commands                                                                                                                                                                                     
+      :     // (100+j, i) are used to save the commands                                                                                                                          
+      1     // j (51, 50) is used to save the number of chars in a command                                                                                                  
+      +                                                                                                                                                                     
+    v _ @ "EOF"                                                                                                                                                             
+                                                                                                                                                                            
+    > v                                                                                                                                                                                                 
+      :                                                                                                                                                                                             
+      8                                                                                                                                                                                                       
+      4                                                                                                                                                                                                      
+      *                                                                                                                                                                                                    
+      -   
+    v _  v "space"                                                                                                                                                                       
+  ^     $<                                                                                                                                                                         
+    > v                                                                                                                                                                     
+      :
+      7
+      7
+      *
+      2
+      -           
+      -  v        $<  "comment"
+    v _ $> ~ :55+- |          
+  ^                <             
+    >v                             
+     :                            
+     5                            
+     2                            
+     *                              
+     -             ^p*2*55+1*2*550< 
+    v_   $55*2*55*2*g1+55*2*55*2*p^
+        
+    > 55*2*1+55*2*g55*4*+55*2*55*2*gpv
+  ^     p*2*55+1*2*55+1g*2*55+1*2*55 <
+      
