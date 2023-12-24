@@ -1,0 +1,13 @@
+                                                             >                   (JMP)
+                                                >            |/11
+              >                                 | /1         >                  (JLE)
+                                                             >                   (JNE)
+                                                >            |/10
+                                                             >                    (JLT)
+>             |   if0 go down, else go up                  
+                                                             >            (JGE)
+                                               >             |/01
+              >                                | /0          >            (JEQ)
+                                                             >            (JGT)        
+                                               >             |/00
+                                                             >             (null)
