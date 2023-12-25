@@ -398,7 +398,7 @@ int main(void){
                 }
 
                 #ifdef SIMULATOR
-                if(192 * targetY + targetX >= 16384){
+                if(192 * targetY + targetX >= 16384 && 192 * targetY + targetX < 24576){
                     updateScreen(192 * targetY + targetX - 16384, targetV);
                 }
                 #endif
