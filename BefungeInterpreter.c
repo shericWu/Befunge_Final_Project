@@ -257,7 +257,9 @@ int main(void){
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
 
         #ifdef SIMULATOR
-        KBDload();
+        if(feof(stdin)){
+            KBDload();
+        }
         #endif
 
         if(!isvalid(y, x)){
