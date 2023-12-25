@@ -191,8 +191,6 @@ void KBDload() {
     if (keyCode == 0) {
         CommandAry[KBD_Y][KBD_X] = 0;
     }
-    printf("%d\n", CommandAry[KBD_Y][KBD_X]);
-    Sleep(100);
     return;
 }
 
