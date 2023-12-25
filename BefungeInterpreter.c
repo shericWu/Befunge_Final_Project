@@ -12,10 +12,14 @@
 #define CommandWidth 600
 #define CommandNumLimit 100000 // to avoid infinite loop
 #define UpdatePeriod 3
-#define FILENAME "Nolabel.bf" // the sourse of the command
+#define FILENAME "foo.bf" // the sourse of the command
 #define COMMAND "BefungeOut" // the name of the output
 #define SCREEN "screen" // the name of the screen file
+#define KEY_NUM 255
+#define KBD_X 0
+#define KBD_Y 128
 
+int keyTable[KEY_NUM] = {0};
 unsigned short int CommandAry[CommandLength][CommandWidth];
 
 enum dir{right, down, left, up};
@@ -151,7 +155,44 @@ void printCommand(){
     return;
 }
 
-void KBDload(void){
+void buildKeyTable() {
+    keyTable[13] = 128;
+    keyTable[8] = 129;
+    keyTable[37] = 130;
+    keyTable[38] = 131;
+    keyTable[39] = 132;
+    keyTable[40] = 133;
+    keyTable[36] = 134;
+    keyTable[35] = 135;
+    keyTable[33] = 136;
+    keyTable[34] = 137;
+    keyTable[45] = 138;
+    keyTable[46] = 139;
+    keyTable[27] = 140;
+    for (int f = 0; f < 12; f++) {
+        keyTable[f + 112] = f + 141;
+    }
+}
+
+void KBDload() {
+    int keyCode = 0;
+    for (int key = 0; key < KEY_NUM; key++) {
+        if (GetAsyncKeyState(key)) {
+            while (_kbhit()) {
+                CommandAry[KBD_Y][KBD_X] = _getch();
+            }
+            keyCode = key;
+            if (keyTable[keyCode] != 0) {
+                CommandAry[KBD_Y][KBD_X] = keyTable[keyCode];
+            }
+            break;
+        }
+    }
+    if (keyCode == 0) {
+        CommandAry[KBD_Y][KBD_X] = 0;
+    }
+    printf("%d\n", CommandAry[KBD_Y][KBD_X]);
+    Sleep(100);
     return;
 }
 
@@ -199,7 +240,7 @@ void updateScreen(int index, unsigned short int c){
 
 int main(void){
     Stack *stack = initialStack();
-
+    buildKeyTable();
     initialArray();
     LoadCommand();
     printCommand();
