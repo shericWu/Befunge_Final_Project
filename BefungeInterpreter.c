@@ -10,9 +10,9 @@
 #include <conio.h>
 #define CommandLength 300
 #define CommandWidth 600
-#define CommandNumLimit 100000 // to avoid infinite loop
+#define CommandNumLimit 500000 // to avoid infinite loop
 #define UpdatePeriod 3
-#define FILENAME "foo.bf" // the sourse of the command
+#define FILENAME "BefungeCommand.bf" // the sourse of the command
 #define COMMAND "BefungeOut" // the name of the output
 #define SCREEN "screen" // the name of the screen file
 #define KEY_NUM 255
@@ -155,7 +155,7 @@ void printCommand(){
     return;
 }
 
-void buildKeyTable() {
+void buildKeyTable(void){
     keyTable[13] = 128;
     keyTable[8] = 129;
     keyTable[37] = 130;
@@ -169,26 +169,26 @@ void buildKeyTable() {
     keyTable[45] = 138;
     keyTable[46] = 139;
     keyTable[27] = 140;
-    for (int f = 0; f < 12; f++) {
+    for(int f = 0; f < 12; f++){
         keyTable[f + 112] = f + 141;
     }
 }
 
-void KBDload() {
+void KBDload(void){
     int keyCode = 0;
-    for (int key = 0; key < KEY_NUM; key++) {
-        if (GetAsyncKeyState(key)) {
-            while (_kbhit()) {
+    for(int key = 0; key < KEY_NUM; key++){
+        if(GetAsyncKeyState(key)){
+            while(_kbhit()){
                 CommandAry[KBD_Y][KBD_X] = _getch();
             }
             keyCode = key;
-            if (keyTable[keyCode] != 0) {
+            if(keyTable[keyCode] != 0){
                 CommandAry[KBD_Y][KBD_X] = keyTable[keyCode];
             }
             break;
         }
     }
-    if (keyCode == 0) {
+    if(keyCode == 0){
         CommandAry[KBD_Y][KBD_X] = 0;
     }
     return;
@@ -238,12 +238,15 @@ void updateScreen(int index, unsigned short int c){
 
 int main(void){
     Stack *stack = initialStack();
-    buildKeyTable();
+
     initialArray();
     LoadCommand();
     printCommand();
 
+    #ifdef SIMULATOR
     initialScreen();
+    buildKeyTable();
+    #endif
 
     srand(time(NULL));
 
@@ -253,7 +256,9 @@ int main(void){
     bool stringMode = false, jumpMode = false;
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
 
+        #ifdef SIMULATOR
         KBDload();
+        #endif
 
         if(!isvalid(y, x)){
             adjustPosition(&y, &x);
@@ -391,9 +396,13 @@ int main(void){
                 if((countChange %= UpdatePeriod) == 0){
                     printCommand();
                 }
+
+                #ifdef SIMULATOR
                 if(192 * targetY + targetX >= 16384){
                     updateScreen(192 * targetY + targetX - 16384, targetV);
                 }
+                #endif
+
                 break;
             case '&':
                 a = scanf("%d", &inputInt);
