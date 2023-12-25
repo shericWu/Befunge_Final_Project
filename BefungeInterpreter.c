@@ -12,12 +12,19 @@
 #define CommandWidth 600
 #define CommandNumLimit 500000 // to avoid infinite loop
 #define UpdatePeriod 3
-#define FILENAME "BefungeCommand.bf" // the sourse of the command
+#define FILENAME "Hack_Assembler.bf" // the sourse of the command
 #define COMMAND "BefungeOut" // the name of the output
 #define SCREEN "screen" // the name of the screen file
 #define KEY_NUM 255
 #define KBD_X 0
 #define KBD_Y 128
+#define HIGHLIGHT_MODE
+
+#ifdef HIGHLIGHT_MODE
+#define HIGHLIGHT_H 10
+#define HIGHLIGHT_W 25
+#define OUTPUT_FILENAME "foo.asm"
+#endif
 
 int keyTable[KEY_NUM] = {0};
 unsigned short int CommandAry[CommandLength][CommandWidth];
@@ -236,6 +243,33 @@ void updateScreen(int index, unsigned short int c){
     return;
 }
 
+void printHighlight(int y, int x) {
+    // system("cls");
+    printf("\033[%d;%dH", 1, 1);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    for (int i = y - HIGHLIGHT_H; i < y + HIGHLIGHT_H; i++) {
+        printf("\r");
+        for (int j = x - HIGHLIGHT_W; j < x + HIGHLIGHT_W; j++) {
+            if (i < 0 || j < 0 || i >= CommandLength || j >= CommandWidth
+              || CommandAry[i][j] < 32 || CommandAry[i][j] > 126) {
+                // printf(" ");
+                putchar(' ');
+            }
+            else {
+                if (i == y && j == x) {
+                    SetConsoleTextAttribute(hConsole, BACKGROUND_RED);
+                }
+                else {
+                    SetConsoleTextAttribute(hConsole, 7);
+                }
+                putchar(CommandAry[i][j]);
+            }
+        }
+        putchar('\n');
+    }
+    // Sleep(200);
+}
+
 int main(void){
     Stack *stack = initialStack();
 
@@ -246,6 +280,11 @@ int main(void){
     #ifdef SIMULATOR
     initialScreen();
     buildKeyTable();
+    #endif
+
+    #ifdef HIGHLIGHT_MODE
+    FILE *output = fopen(OUTPUT_FILENAME, "w");
+    assert(output != NULL);
     #endif
 
     srand(time(NULL));
@@ -265,6 +304,9 @@ int main(void){
         if(!isvalid(y, x)){
             adjustPosition(&y, &x);
         }
+        #ifdef HIGHLIGHT_MODE
+        printHighlight(y, x);
+        #endif
 
         #ifdef DEBUG
         printStack(stack);
@@ -362,7 +404,12 @@ int main(void){
                 pop(stack);
                 break;
             case '.':
+                #ifndef HIGHLIGHT_MODE
                 printf("%d", pop(stack));
+                #endif
+                #ifdef HIGHLIGHT_MODE
+                fprintf(output, "%d", pop(stack));
+                #endif
                 break;
             case ',':
                 a = pop(stack);
@@ -370,7 +417,12 @@ int main(void){
                     printf("the toppest element of the stack is not a char\n");
                     break;
                 }
+                #ifndef HIGHLIGHT_MODE
                 printf("%c", a);
+                #endif
+                #ifdef HIGHLIGHT_MODE
+                fprintf(output, "%c", a);
+                #endif
                 break;
             case '#':
                 jumpMode = true;
@@ -404,7 +456,12 @@ int main(void){
                     updateScreen(192 * targetY + targetX - 16384, targetV);
                 }
                 #endif
-
+                #ifdef HIGHLIGHT_MODE
+                if (CommandAry[targetY][targetX] > 32 && CommandAry[targetY][targetX] <= 126) {
+                    printHighlight(targetY, targetX);
+                    Sleep(200);
+                }
+                #endif
                 break;
             case '&':
                 a = scanf("%d", &inputInt);
@@ -431,6 +488,9 @@ int main(void){
                 printf("failed to get user's input\n");
                 exit(-1);
             case '@':
+                #ifdef HIGHLIGHT_MODE
+                fclose(output);
+                #endif
                 printf("\nThe program ended successfully\n");
                 return 0;
             default:
