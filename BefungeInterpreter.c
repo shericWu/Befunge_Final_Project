@@ -11,7 +11,8 @@
 #define CommandLength 300
 #define CommandWidth 600
 #define CommandNumLimit 100000 // to avoid infinite loop
-#define FILENAME "test.bf" // the sourse of the command
+#define UpdatePeriod 3
+#define FILENAME "Nolabel.bf" // the sourse of the command
 #define COMMAND "BefungeOut" // the name of the output
 #define SCREEN "screen" // the name of the screen file
 
@@ -196,20 +197,6 @@ void updateScreen(int index, unsigned short int c){
     return;
 }
 
-void updateCommand(int y, int x, unsigned short int c){
-    FILE *fp = fopen(COMMAND, "r+");
-    assert(fp != NULL);
-    fseek(fp, y * (CommandWidth + 2) + x, SEEK_SET);
-    if(c >= 32 && c <= 126){
-        fputc(c, fp);
-    }
-    else{
-        fputc(' ', fp);
-    }
-    fclose(fp);
-    return;
-}
-
 int main(void){
     Stack *stack = initialStack();
 
@@ -223,6 +210,7 @@ int main(void){
 
     int x = 0, y = 0;
     int direction = right;
+    int countChange = 0;
     bool stringMode = false, jumpMode = false;
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
 
@@ -360,7 +348,10 @@ int main(void){
                     break;
                 }
                 CommandAry[targetY][targetX] = targetV;
-                updateCommand(targetY, targetX, targetV);
+                countChange++;
+                if((countChange %= UpdatePeriod) == 0){
+                    printCommand();
+                }
                 if(192 * targetY + targetX >= 16384){
                     updateScreen(192 * targetY + targetX - 16384, targetV);
                 }
