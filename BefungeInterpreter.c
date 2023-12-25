@@ -7,11 +7,13 @@
 #include <limits.h>
 #include <windows.h>
 #include <string.h>
+#include <conio.h>
 #define CommandLength 300
 #define CommandWidth 600
-#define CommandNumLimit 50000 // to avoid infinite loop
-#define FILENAME "BefungeCommand.bf" // the sourse of the command
-#define OUTFILE "BefungeOut" // the name of the output
+#define CommandNumLimit 100000 // to avoid infinite loop
+#define FILENAME "test.bf" // the sourse of the command
+#define COMMAND "BefungeOut" // the name of the output
+#define SCREEN "screen" // the name of the screen file
 
 unsigned short int CommandAry[CommandLength][CommandWidth];
 
@@ -64,11 +66,17 @@ void push(Stack *stack, int value){
     return;
 }
 
-void LoadCommand(FILE *fp){
+void LoadCommand(void){
+    FILE *fp = fopen(FILENAME, "r");
+    if(fp == NULL){
+        printf("failed to open the file\n");
+        exit(-1);
+    }
     int i = 0, j = 0;
     while(i < CommandLength && j < CommandWidth){
         int c = fgetc(fp);
         if(c == EOF){
+            fclose(fp);
             return;
         }
         if(c == '\n'){
@@ -125,9 +133,7 @@ void printStack(Stack *stack){
 }
 
 void printCommand(){
-
-    #if defined FILE_MODE
-    FILE *fp = fopen(OUTFILE, "w");
+    FILE *fp = fopen(COMMAND, "w");
     assert(fp != NULL);
     for(int i = 0; i < CommandLength; i++){
         for(int j = 0; j < CommandWidth; j++){
@@ -141,59 +147,86 @@ void printCommand(){
         fputc('\n', fp);
     }
     fclose(fp);
+    return;
+}
 
-    #elif defined CONSOLE_MODE
-    system("cls");
+void KBDload(void){
+    return;
+}
+
+void initialArray(void){
     for(int i = 0; i < CommandLength; i++){
         for(int j = 0; j < CommandWidth; j++){
-            if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
-                putchar(CommandAry[i][j]);
-            }
-            else{
-                putchar(' ');
-            }
+            CommandAry[i][j] = ' ';
         }
-        putchar('\n');
     }
+    return;
+}
 
-    #else // screen mode
-    FILE *fp = fopen(OUTFILE, "w");
+void initialScreen(void){
+    FILE *fp = fopen(SCREEN, "w");
     assert(fp != NULL);
     for(int i = 0; i < 256; i++){
         for(int j = 0; j < 512; j++){
-            if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
-                fputc(CommandAry[i][j], fp);
-            }
-            else{
-                fputc(' ', fp);
-            }
+            fputc(' ', fp);
         }
         fputc('\n', fp);
     }
     fclose(fp);
-    #endif
-    
+    return;
+}
+
+void updateScreen(int index, unsigned short int c){
+    assert(index >= 0 && index <= 8192);
+    FILE *fp = fopen(SCREEN, "r+");
+    assert(fp != NULL);
+    int y = index / 32, x = index % 32 * 16;
+    fseek(fp, y * (512 + 2) + x, SEEK_SET);
+    for(int i = 0; i < 16; i++){
+        int bit = (c >> (15 - i)) & 1;
+        char pixel = 0;
+        if(bit){
+            pixel = '0';
+        }
+        else{
+            pixel = ' ';
+        }
+        fputc(pixel, fp);
+    }
+    return;
+}
+
+void updateCommand(int y, int x, unsigned short int c){
+    FILE *fp = fopen(COMMAND, "r+");
+    assert(fp != NULL);
+    fseek(fp, y * (CommandWidth + 2) + x, SEEK_SET);
+    if(c >= 32 && c <= 126){
+        fputc(c, fp);
+    }
+    else{
+        fputc(' ', fp);
+    }
+    fclose(fp);
     return;
 }
 
 int main(void){
     Stack *stack = initialStack();
-    FILE *fp = fopen(FILENAME, "r");
-    if(fp == NULL){
-        printf("failed to open the file\n");
-        exit(-1);
-    }
-    LoadCommand(fp);
-    fclose(fp);
+
+    initialArray();
+    LoadCommand();
+    printCommand();
+
+    initialScreen();
 
     srand(time(NULL));
-
-    printCommand();
 
     int x = 0, y = 0;
     int direction = right;
     bool stringMode = false, jumpMode = false;
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
+
+        KBDload();
 
         if(!isvalid(y, x)){
             adjustPosition(&y, &x);
@@ -201,13 +234,13 @@ int main(void){
 
         #ifdef DEBUG
         printStack(stack);
-        printf("direction before the command %d\n", direction);
-        if(CommandAry[i][j] >= 32 && CommandAry[i][j] <= 126){
+        if(CommandAry[y][x] >= 32 && CommandAry[y][x] <= 126){
             printf("position (%d, %d), command %c\n", x, y, CommandAry[y][x]);
         }
         else{
-            printf("position (%d, %d)\n", x, y)
+            printf("position (%d, %d)\n", x, y);
         }
+        printf("direction before the command %d\n", direction);
         #endif
 
         if(jumpMode){
@@ -327,7 +360,10 @@ int main(void){
                     break;
                 }
                 CommandAry[targetY][targetX] = targetV;
-                printCommand();
+                updateCommand(targetY, targetX, targetV);
+                if(192 * targetY + targetX >= 16384){
+                    updateScreen(192 * targetY + targetX - 16384, targetV);
+                }
                 break;
             case '&':
                 a = scanf("%d", &inputInt);
@@ -354,7 +390,6 @@ int main(void){
                 printf("failed to get user's input\n");
                 exit(-1);
             case '@':
-                fclose(fp);
                 printf("\nThe program ended successfully\n");
                 return 0;
             default:
