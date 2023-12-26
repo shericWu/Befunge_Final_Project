@@ -21,8 +21,8 @@
 #define HIGHLIGHT_MODE
 
 #ifdef HIGHLIGHT_MODE
-#define HIGHLIGHT_H 10
-#define HIGHLIGHT_W 30
+#define HIGHLIGHT_H 16
+#define HIGHLIGHT_W 60
 #define OUTPUT_FILENAME "foo.asm"
 #endif
 
@@ -256,9 +256,19 @@ void printHighlight(int y, int x) {
             }
             if (i == y && j == x) {
                 printf("\033[30;103;1;5m%c", CommandAry[i][j]);
+                printf("\033[39m\033[49m");
             }
-            else if (isdigit(CommandAry[i][j])) {
-                printf("\033[36m%c", CommandAry[i][j]);
+            else if (CommandAry[i][j] == '^'
+              || CommandAry[i][j] == 'v'
+              || CommandAry[i][j] == '<'
+              || CommandAry[i][j] == '>') {
+                // printf("\033[30;103;1;5m%c", CommandAry[i][j]);
+                printf("\033[31m%c", CommandAry[i][j]);
+            }
+            else if (!isalnum(CommandAry[i][j])
+              || CommandAry[i][j] == 'p'
+              || CommandAry[i][j] == 'g') {
+                printf("\033[34m%c", CommandAry[i][j]);
             }
             else {
                 printf("\033[0m%c", CommandAry[i][j]);
