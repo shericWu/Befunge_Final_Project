@@ -11,8 +11,8 @@
 #define KEY_NUM 255
 #define KBD_X 0
 #define KBD_Y 128
-#define HIGHLIGHT_H 18
-#define HIGHLIGHT_W 50
+#define HIGHLIGHT_H 16
+#define HIGHLIGHT_W 60
 #define CommandLength 1000
 #define CommandWidth 600
 #define CommandNumLimit 100000000 // to avoid infinite loop
