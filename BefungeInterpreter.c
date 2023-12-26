@@ -8,25 +8,28 @@
 #include <windows.h>
 #include <string.h>
 #include <conio.h>
-#define CommandLength 300
-#define CommandWidth 600
-#define CommandNumLimit 500000 // to avoid infinite loop
-#define UpdatePeriod 3
-#define FILENAME "Hack_Assembler.bf" // the sourse of the command
-#define COMMAND "BefungeOut" // the name of the output
-#define SCREEN "screen" // the name of the screen file
 #define KEY_NUM 255
 #define KBD_X 0
 #define KBD_Y 128
-#define HIGHLIGHT_MODE
-
-#ifdef HIGHLIGHT_MODE
 #define HIGHLIGHT_H 10
 #define HIGHLIGHT_W 30
-#define OUTPUT_FILENAME "foo.asm"
-#endif
+#define CommandLength 1000
+#define CommandWidth 600
+#define CommandNumLimit 100000000 // to avoid infinite loop
+#define CommandUpdatePeriod 2000
+#define ScreenUpdatePeriod 200
+#define COMMAND "command" // the name of the output
+#define SCREEN "screen" // the name of the screen file
+#define OUTPUT "output"
+
+#define FILENAME "assembler.bf"
+//#define FILENAME "simulator.bf"
+//#define SIMULATOR
+//#define COMMAND_PRINT
+#define HIGHLIGHT_MODE
 
 int keyTable[KEY_NUM] = {0};
+char screen[256][514] = {};
 unsigned short int CommandAry[CommandLength][CommandWidth];
 
 enum dir{right, down, left, up};
@@ -213,11 +216,11 @@ void initialArray(void){
 void initialScreen(void){
     FILE *fp = fopen(SCREEN, "w");
     assert(fp != NULL);
+    memset(screen, ' ', 256 * 513);
     for(int i = 0; i < 256; i++){
-        for(int j = 0; j < 512; j++){
-            fputc(' ', fp);
-        }
-        fputc('\n', fp);
+        screen[i][512] = '\n';
+        screen[i][513] = '\0';
+        fputs(screen[i], fp);
     }
     fclose(fp);
     return;
@@ -228,39 +231,43 @@ void updateScreen(int index, unsigned short int c){
     FILE *fp = fopen(SCREEN, "r+");
     assert(fp != NULL);
     int y = index / 32, x = index % 32 * 16;
-    fseek(fp, y * (512 + 2) + x, SEEK_SET);
     for(int i = 0; i < 16; i++){
         int bit = (c >> (15 - i)) & 1;
-        char pixel = 0;
         if(bit){
-            pixel = '0';
+            screen[y][x + i] = '0';
         }
         else{
-            pixel = ' ';
+            screen[y][x + i] = ' ';
         }
-        fputc(pixel, fp);
     }
+    static int countChange = 0;
+    if((countChange %= ScreenUpdatePeriod) == 0){
+        for(int i = 0; i < 256; i++){
+            fputs(screen[i], fp);
+        }
+    }
+    fclose(fp);
     return;
 }
 
-void printHighlight(int y, int x) {
+void printHighlight(int y, int x){
     printf("\033[%d;%dH", 0, 0);
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    for (int i = y - HIGHLIGHT_H; i < y + HIGHLIGHT_H; i++) {
+    for(int i = y - HIGHLIGHT_H; i < y + HIGHLIGHT_H; i++){
         printf("\r");
-        for (int j = x - HIGHLIGHT_W; j < x + HIGHLIGHT_W; j++) {
+        for(int j = x - HIGHLIGHT_W; j < x + HIGHLIGHT_W; j++){
             if (i < 0 || j < 0 || i >= CommandLength || j >= CommandWidth
-              || CommandAry[i][j] < 32 || CommandAry[i][j] > 126) {
+              || CommandAry[i][j] < 32 || CommandAry[i][j] > 126){
                 putchar(' ');
                 continue;
             }
-            if (i == y && j == x) {
+            if (i == y && j == x){
                 printf("\033[30;103;1;5m%c", CommandAry[i][j]);
             }
-            else if (isdigit(CommandAry[i][j])) {
+            else if(isdigit(CommandAry[i][j])){
                 printf("\033[36m%c", CommandAry[i][j]);
             }
-            else {
+            else{
                 printf("\033[0m%c", CommandAry[i][j]);
             }
         }
@@ -270,21 +277,20 @@ void printHighlight(int y, int x) {
 }
 
 int main(void){
+
     Stack *stack = initialStack();
 
     initialArray();
     LoadCommand();
+    system("cls");
+
+    #ifdef COMMAND_PRINT
     printCommand();
+    #endif
 
     #ifdef SIMULATOR
     initialScreen();
     buildKeyTable();
-    #endif
-
-    #ifdef HIGHLIGHT_MODE
-    FILE *output = fopen(OUTPUT_FILENAME, "w");
-    assert(output != NULL);
-    system("cls");
     #endif
 
     srand(time(NULL));
@@ -293,17 +299,14 @@ int main(void){
     int direction = right;
     int countChange = 0;
     bool stringMode = false, jumpMode = false;
+    FILE *fp = fopen(OUTPUT, "w");
+    assert(fp != NULL);
     for(int numCommand = 0; numCommand < CommandNumLimit; numCommand++, x += dx[direction], y += dy[direction]){
-
-        #ifdef SIMULATOR
-        if(feof(stdin)){
-            KBDload();
-        }
-        #endif
 
         if(!isvalid(y, x)){
             adjustPosition(&y, &x);
         }
+
         #ifdef HIGHLIGHT_MODE
         printHighlight(y, x);
         #endif
@@ -404,12 +407,7 @@ int main(void){
                 pop(stack);
                 break;
             case '.':
-                #ifndef HIGHLIGHT_MODE
-                printf("%d", pop(stack));
-                #endif
-                #ifdef HIGHLIGHT_MODE
-                fprintf(output, "%d", pop(stack));
-                #endif
+                fprintf(fp,"%d", pop(stack));
                 break;
             case ',':
                 a = pop(stack);
@@ -417,12 +415,7 @@ int main(void){
                     printf("the toppest element of the stack is not a char\n");
                     break;
                 }
-                #ifndef HIGHLIGHT_MODE
-                printf("%c", a);
-                #endif
-                #ifdef HIGHLIGHT_MODE
-                fprintf(output, "%c", a);
-                #endif
+                fprintf(fp, "%c", a);
                 break;
             case '#':
                 jumpMode = true;
@@ -435,6 +428,13 @@ int main(void){
                     push(stack, 0);
                     break;
                 }
+
+                #ifdef SIMULATOR
+                if(targetX == KBD_X && targetY == KBD_Y){
+                    KBDload();
+                }
+                #endif
+
                 push(stack, CommandAry[targetY][targetX]);
                 break;
             case 'p':
@@ -446,22 +446,27 @@ int main(void){
                     break;
                 }
                 CommandAry[targetY][targetX] = targetV;
+
+                #ifdef COMMAND_PRINT
                 countChange++;
-                if((countChange %= UpdatePeriod) == 0){
+                if((countChange %= CommandUpdatePeriod) == 0){
                     printCommand();
                 }
+                #endif
 
                 #ifdef SIMULATOR
                 if(192 * targetY + targetX >= 16384 && 192 * targetY + targetX < 24576){
                     updateScreen(192 * targetY + targetX - 16384, targetV);
                 }
                 #endif
+
                 #ifdef HIGHLIGHT_MODE
                 if (CommandAry[targetY][targetX] > 32 && CommandAry[targetY][targetX] <= 126) {
                     printHighlight(targetY, targetX);
                     Sleep(200);
                 }
                 #endif
+
                 break;
             case '&':
                 a = scanf("%d", &inputInt);
@@ -488,9 +493,7 @@ int main(void){
                 printf("failed to get user's input\n");
                 exit(-1);
             case '@':
-                #ifdef HIGHLIGHT_MODE
-                fclose(output);
-                #endif
+                fclose(fp);
                 printf("\nThe program ended successfully\n");
                 return 0;
             default:
@@ -509,5 +512,6 @@ int main(void){
 
     }
     printf("The number of commands excceded the limit\n");
+    fclose(fp);
     return 0;
 }
