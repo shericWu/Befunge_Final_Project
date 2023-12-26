@@ -22,7 +22,7 @@
 
 #ifdef HIGHLIGHT_MODE
 #define HIGHLIGHT_H 10
-#define HIGHLIGHT_W 25
+#define HIGHLIGHT_W 30
 #define OUTPUT_FILENAME "foo.asm"
 #endif
 
@@ -244,25 +244,24 @@ void updateScreen(int index, unsigned short int c){
 }
 
 void printHighlight(int y, int x) {
-    // system("cls");
-    printf("\033[%d;%dH", 1, 1);
+    printf("\033[%d;%dH", 0, 0);
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     for (int i = y - HIGHLIGHT_H; i < y + HIGHLIGHT_H; i++) {
         printf("\r");
         for (int j = x - HIGHLIGHT_W; j < x + HIGHLIGHT_W; j++) {
             if (i < 0 || j < 0 || i >= CommandLength || j >= CommandWidth
               || CommandAry[i][j] < 32 || CommandAry[i][j] > 126) {
-                // printf(" ");
                 putchar(' ');
+                continue;
+            }
+            if (i == y && j == x) {
+                printf("\033[30;103;1;5m%c", CommandAry[i][j]);
+            }
+            else if (isdigit(CommandAry[i][j])) {
+                printf("\033[36m%c", CommandAry[i][j]);
             }
             else {
-                if (i == y && j == x) {
-                    SetConsoleTextAttribute(hConsole, BACKGROUND_RED);
-                }
-                else {
-                    SetConsoleTextAttribute(hConsole, 7);
-                }
-                putchar(CommandAry[i][j]);
+                printf("\033[0m%c", CommandAry[i][j]);
             }
         }
         putchar('\n');
@@ -285,6 +284,7 @@ int main(void){
     #ifdef HIGHLIGHT_MODE
     FILE *output = fopen(OUTPUT_FILENAME, "w");
     assert(output != NULL);
+    system("cls");
     #endif
 
     srand(time(NULL));
